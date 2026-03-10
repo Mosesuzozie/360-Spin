@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "spin360",
+  "version": "${version}",
+  "name": "Spin360",
+  "description": "Press V to instantly 360 spin your player. Client-side only.",
+  "authors": [ "You" ],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.spin360.mod.client.Spin360Client"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "spin360.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=21"
+  }
+}
