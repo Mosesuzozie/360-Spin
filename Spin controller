@@ -1,0 +1,80 @@
+package com.spin360.mod.client;
+
+/**
+ * Tracks a single in-progress 360 spin.
+ *
+ * Completely decoupled from Minecraft classes so it's easy to test.
+ *
+ * Lifecycle:
+ *   startSpin(yaw)  →  isActive() == true
+ *   tick()          →  advances progress, returns desired yaw
+ *   once done       →  isActive() == false, yaw snapped to start + 360
+ */
+public class SpinController {
+
+    /** How many client ticks the spin lasts. 6 ticks = ~300 ms — snappy. */
+    private static final int SPIN_TICKS = 6;
+
+    private static final SpinController INSTANCE = new SpinController();
+    public static SpinController get() { return INSTANCE; }
+
+    private boolean active    = false;
+    private float   startYaw  = 0f;
+    private int     elapsed   = 0;
+
+    private SpinController() {}
+
+    // -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
+
+    /** Kick off a new spin. No-ops if one is already running. */
+    public void startSpin(float currentYaw) {
+        if (active) return;
+        active   = true;
+        startYaw = currentYaw;
+        elapsed  = 0;
+    }
+
+    public boolean isActive() { return active; }
+
+    /**
+     * Call once per client tick while active.
+     * Advances internal state and returns the yaw to apply to the player.
+     */
+    public float tick() {
+        if (!active) return startYaw;
+
+        elapsed++;
+        float progress = (float) elapsed / SPIN_TICKS;
+
+        if (elapsed >= SPIN_TICKS) {
+            active = false;
+            return startYaw + 360f;   // exact finish — no drift
+        }
+
+        return startYaw + easeInOut(progress) * 360f;
+    }
+
+    /**
+     * Smooth partial-tick interpolation for rendering.
+     * Call from a render event if you want butter-smooth visuals.
+     */
+    public float getRenderYaw(float partialTick) {
+        float prev = easeInOut((float)(elapsed - 1) / SPIN_TICKS);
+        float next = easeInOut((float) elapsed      / SPIN_TICKS);
+        return startYaw + (prev + (next - prev) * partialTick) * 360f;
+    }
+
+    // -------------------------------------------------------------------------
+    // Internal helpers
+    // -------------------------------------------------------------------------
+
+    /** Cubic ease-in-out: t=0→slow, t=0.5→fast, t=1→slow. */
+    private static float easeInOut(float t) {
+        t = Math.max(0f, Math.min(1f, t));
+        return t < 0.5f
+                ? 4f * t * t * t
+                : 1f - (float) Math.pow(-2f * t + 2f, 3) / 2f;
+    }
+}
